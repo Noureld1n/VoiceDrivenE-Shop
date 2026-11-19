@@ -3,6 +3,9 @@ import { Product, FooterBanner, HerroBanner, Categories } from '../components';
 import { useStateContext } from '../context/StateContext';
 import { api } from '../lib/client';
 
+// The API returns "productId"; older code used "id". Support both.
+const pid = (p) => p?.productId ?? p?.id;
+
 const Home = () => {
   const { products, loadProducts, loadCategories, voiceCommandCategory, setVoiceCommandCategory } = useStateContext();
   const [loading, setLoading] = useState(true);
@@ -20,7 +23,7 @@ const Home = () => {
         await loadProducts();
         const categoriesData = await loadCategories();
         setCategories(categoriesData);
-        
+
         // Debug: Check product structure
         console.log('Products loaded:', products);
         if (products.length > 0) {
@@ -41,14 +44,14 @@ const Home = () => {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const categoryParam = urlParams.get('category');
-    
+
     if (categoryParam) {
       const categoryId = parseInt(categoryParam);
       // Find the category name
-      const categoryName = categoryId === 1 ? 'Electronics' : 
-                          categoryId === 2 ? 'Groceries' : 
+      const categoryName = categoryId === 1 ? 'Electronics' :
+                          categoryId === 2 ? 'Groceries' :
                           categoryId === 3 ? 'Wearings' : 'All Products';
-      
+
       handleCategoryClick(categoryId, categoryName);
     }
   }, []);
@@ -58,13 +61,13 @@ const Home = () => {
     if (!selectedCategoryId) {
       setFilteredProducts(products);
     }
-    
+
     // Create randomized products list when products are loaded
     if (products && products.length > 0) {
       createRandomizedProductsList(products);
     }
   }, [products, selectedCategoryId]);
-  
+
   // Effect to handle voice command category changes
   useEffect(() => {
     if (voiceCommandCategory) {
@@ -87,27 +90,27 @@ const Home = () => {
 
       handleCategoryClick(categoryIdToSelect, categoryNameToSelect);
       // Reset voiceCommandCategory in context after processing
-      setVoiceCommandCategory(null); 
+      setVoiceCommandCategory(null);
     }
   }, [voiceCommandCategory, setVoiceCommandCategory]);
-  
+
   // Function to create a randomized list of products from each category
   const createRandomizedProductsList = async (allProducts) => {
     try {
       // Fetch products from each category (1: Electronics, 2: Groceries, 3: Wearings)
       const categoryIds = [1, 2, 3];
       const randomProducts = [];
-      
+
       for (const categoryId of categoryIds) {
         try {
           const response = await api.products.getByCategory(categoryId);
-          
+
           if (response.data) {
             // Handle both array and paginated response formats
-            const categoryProducts = Array.isArray(response.data) 
-              ? response.data 
+            const categoryProducts = Array.isArray(response.data)
+              ? response.data
               : response.data.content || [];
-              
+
             // Get random products from this category (up to 4 per category to get 10-12 total)
             if (categoryProducts.length > 0) {
               const shuffled = [...categoryProducts].sort(() => 0.5 - Math.random());
@@ -119,13 +122,13 @@ const Home = () => {
           console.error(`Error fetching category ${categoryId} products:`, error);
         }
       }
-      
+
       // If we couldn't get products from categories, use random products from the full list
       if (randomProducts.length === 0 && allProducts.length > 0) {
         const shuffled = [...allProducts].sort(() => 0.5 - Math.random());
         randomProducts.push(...shuffled.slice(0, Math.min(10, allProducts.length)));
       }
-      
+
       // Shuffle the final list to mix products from different categories
       // Ensure we get exactly 10 products or all available if less than 10
       let limitedRandomProducts = randomProducts.sort(() => 0.5 - Math.random());
@@ -135,7 +138,7 @@ const Home = () => {
         // If we have fewer than 10 products, add more from allProducts to reach 10
         const additionalNeeded = 10 - limitedRandomProducts.length;
         const additionalProducts = [...allProducts]
-          .filter(p => !limitedRandomProducts.some(rp => rp.id === p.id)) // Avoid duplicates
+          .filter(p => !limitedRandomProducts.some(rp => pid(rp) === pid(p))) // Avoid duplicates
           .sort(() => 0.5 - Math.random())
           .slice(0, additionalNeeded);
         limitedRandomProducts = [...limitedRandomProducts, ...additionalProducts];
@@ -156,7 +159,7 @@ const Home = () => {
       if (categoryId === null) {
         // Show randomized products when "Show All Products" is clicked (exactly 10)
         let productsToShow = randomizedProducts.length > 0 ? randomizedProducts : (products || []);
-        
+
         // Ensure we have exactly 10 products
         if (productsToShow.length > 10) {
           productsToShow = productsToShow.slice(0, 10);
@@ -164,12 +167,12 @@ const Home = () => {
           // If we have fewer than 10 randomized products, add more from all products to reach exactly 10
           const additionalNeeded = 10 - productsToShow.length;
           const additionalProducts = [...products]
-            .filter(p => !productsToShow.some(rp => rp.id === p.id)) // Avoid duplicates
+            .filter(p => !productsToShow.some(rp => pid(rp) === pid(p))) // Avoid duplicates
             .sort(() => 0.5 - Math.random())
             .slice(0, additionalNeeded);
           productsToShow = [...productsToShow, ...additionalProducts];
         }
-        
+
         setFilteredProducts(productsToShow);
       } else if (products) {
         // Use products passed from the Categories component
@@ -178,11 +181,11 @@ const Home = () => {
         // Fetch products by category if not provided
         const response = await api.products.getByCategory(categoryId);
         console.log('Category products response:', response);
-        
+
         if (response.data) {
           // Handle both array and paginated response formats
-          const categoryProducts = Array.isArray(response.data) 
-            ? response.data 
+          const categoryProducts = Array.isArray(response.data)
+            ? response.data
             : response.data.content || [];
           setFilteredProducts(categoryProducts);
         } else {
@@ -201,10 +204,9 @@ const Home = () => {
     return (
       <>
         <HerroBanner />
-        <Categories 
+        <Categories
           onCategoryClick={handleCategoryClick}
           selectedCategoryId={selectedCategoryId}
-          isLoading={loading}
         />
         <div className='products-heading'>
           <h2>{selectedCategoryName}</h2>
@@ -234,7 +236,7 @@ const Home = () => {
       // If randomized products are fewer than 10 but we have enough products, get exactly 10
       const additionalNeeded = 10 - randomizedProducts.length;
       const additionalProducts = [...products]
-        .filter(p => !randomizedProducts.some(rp => rp.id === p.id))
+        .filter(p => !randomizedProducts.some(rp => pid(rp) === pid(p)))
         .sort(() => 0.5 - Math.random())
         .slice(0, additionalNeeded);
       displayProducts = [...randomizedProducts, ...additionalProducts];
@@ -247,33 +249,31 @@ const Home = () => {
   return (
     <>
       <HerroBanner />
-      <Categories 
+      <Categories
         onCategoryClick={handleCategoryClick}
         selectedCategoryId={selectedCategoryId}
-        displayProducts={displayProducts}
-        isLoading={loading}
       />
       <div className='products-heading'>
         <h2>{selectedCategoryName}</h2>
         <p>
-          {selectedCategoryId 
-            ? `${displayProducts.length} products found in ${selectedCategoryName}` 
+          {selectedCategoryId
+            ? `${displayProducts.length} products found in ${selectedCategoryName}`
             : 'Showing 10 featured products from our collection'}
         </p>
       </div>
       <div className='products-container'>
         {displayProducts?.length > 0 ? (
           displayProducts.map((product, index) => (
-            <Product 
-              key={product.id || index} 
-              product={product} 
+            <Product
+              key={pid(product) ?? index}
+              product={product}
               productNumber={index + 1}
             />
           ))
         ) : (
           <div className="no-products-message">
             <p>No products found in this category.</p>
-            <button 
+            <button
               className="back-to-all-btn"
               onClick={() => handleCategoryClick(null, 'All Products')}
             >
