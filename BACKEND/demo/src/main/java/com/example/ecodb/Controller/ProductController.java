@@ -118,7 +118,9 @@ public class ProductController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse> deleteProduct(@PathVariable Long id) {
         return ResponseEntity.ok(productService.deleteProduct(id));
-    }    @PostMapping(value = "/{id}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    }
+
+    @PostMapping(value = "/{id}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ProductResponse> addProductImage(
             @PathVariable Long id,
@@ -133,13 +135,6 @@ public class ProductController {
         return ResponseEntity.ok(productService.deleteProductImage(imageId));
     }
 
-    // @DeleteMapping("/{id}/images/url")
-    // @PreAuthorize("hasRole('ADMIN')")
-    // public ResponseEntity<ApiResponse> deleteProductImageByUrl(
-    //         @PathVariable Long id,
-    //         @RequestParam("imageUrl") String imageUrl) {
-    //     return ResponseEntity.ok(productService.deleteProductImageByUrl(id, imageUrl));
-    // }
 
     @PutMapping("/images/{imageId}/main")
     @PreAuthorize("hasRole('ADMIN')")
@@ -147,12 +142,5 @@ public class ProductController {
         return ResponseEntity.ok(productService.setMainProductImage(imageId));
     }
 
-    // @PostMapping("/{id}/images/url")
-    // @PreAuthorize("hasRole('ADMIN')")
-    // public ResponseEntity<ProductResponse> addProductImageByUrl(
-    //         @PathVariable Long id,
-    //         @RequestParam("imageUrl") String imageUrl,
-    //         @RequestParam(defaultValue = "false") Boolean isMain) {
-    //     return ResponseEntity.ok(productService.addProductImageByUrl(id, imageUrl, isMain));
-    // }
+
 }

@@ -35,6 +35,11 @@
       "static/chunks/main.js",
       "static/chunks/pages/login.js"
     ],
+    "/product/[slug]": [
+      "static/chunks/webpack.js",
+      "static/chunks/main.js",
+      "static/chunks/pages/product/[slug].js"
+    ],
     "/register": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",

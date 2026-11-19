@@ -1,3 +1,7 @@
+-- =====================================================
+-- ecodb_full_setup.sql  -  DROPS and recreates the whole database
+-- Schema + categories + admins + 30 products + images, in one run.
+-- =====================================================
 drop database if exists ecodb;
 CREATE DATABASE ecodb;
 use ecodb;
@@ -216,26 +220,117 @@ CONSTRAINT feedback_pk PRIMARY KEY (feedback_id),
 CONSTRAINT feedback_fk FOREIGN KEY (customer_id) REFERENCES customer (customer_id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
--- Insert some initial admin user for testing
-INSERT INTO sys_user (first_name, last_name, email, password, phone, role)
-VALUES ('Admin', 'User', 'admin1@ecodb.com', 'admin123', '1234567891', 'ROLE_ADMIN');
+-- =====================================================
+-- CATEGORIES (ids match the frontend categories page)
+-- =====================================================
+INSERT INTO category (category_id, category_name) VALUES
+(1, 'Electronics'),
+(2, 'Groceries'),
+(3, 'Clothes');
 
-INSERT INTO sys_admin (admin_id) 
-VALUES (LAST_INSERT_ID());
+-- =====================================================
+-- ADMINS (ids 1 and 2). Password for both: admin123 (stored as a BCrypt hash).
+-- =====================================================
+INSERT INTO sys_user (user_id, first_name, last_name, email, password, phone, role) VALUES
+(1, 'Admin', 'One', 'admin1@ecodb.com', '$2a$10$LsxNf/PqSVhg5Va2nmHyXOkiFVFgAimPe9sSj97pmlk9qHKZn/VIG', '1234567891', 'ROLE_ADMIN'),
+(2, 'Admin', 'Two', 'admin2@ecodb.com', '$2a$10$LsxNf/PqSVhg5Va2nmHyXOkiFVFgAimPe9sSj97pmlk9qHKZn/VIG', '1234567892', 'ROLE_ADMIN');
+INSERT INTO sys_admin (admin_id) VALUES (1), (2);
 
-select * from customer;
+-- =====================================================
+-- PRODUCTS + IMAGES
+-- Image files must be in <backend>/uploads/products/
+-- =====================================================
+-- Product owner: admin with id 2 (must exist in sys_admin)
+SET @admin := 2;
+-- Stored in product_image.image_url. The frontend adds "<backend>/uploads/" itself,
+-- so only the part AFTER "uploads/" is stored here.
+SET @prefix := 'products/';
 
-select * from sys_admin;
+-- ---------------------- CLOTHES (category 3) ----------------------
+INSERT INTO product (admin_id, category_id, product_name, price, is_available, pro_description, details, quantity_in_stock, size, color) VALUES
+(@admin, 3, 'Classic White T-Shirt', 19.99, true, 'Soft cotton crew-neck tee.', 'Material: 100% organic cotton. Machine washable.', 120, 'M', 'White'),
+(@admin, 3, 'Slim Fit Blue Jeans', 49.99, true, 'Stretch denim slim fit jeans.', 'Material: 98% cotton, 2% elastane.', 80, '32', 'Blue'),
+(@admin, 3, 'Black Hoodie', 44.5, true, 'Warm fleece-lined pullover hoodie.', 'Kangaroo pocket, adjustable drawstring.', 65, 'L', 'Black'),
+(@admin, 3, 'Summer Floral Dress', 39.9, true, 'Light and breezy knee-length dress.', 'Material: viscose. Hand wash recommended.', 40, 'S', 'Pink'),
+(@admin, 3, 'Leather Jacket', 129.0, true, 'Genuine leather biker jacket.', 'Zip closure, two inner pockets.', 25, 'L', 'Brown'),
+(@admin, 3, 'Running Sneakers', 69.99, true, 'Breathable lightweight running shoes.', 'Cushioned sole, mesh upper.', 90, '42', 'Grey'),
+(@admin, 3, 'Wool Winter Scarf', 15.75, true, 'Thick knitted wool scarf.', '180cm long, unisex.', 150, 'One Size', 'Red'),
+(@admin, 3, 'Cotton Boxer Pack (3)', 17.25, true, 'Pack of three cotton boxers.', 'Elastic waistband, tag-free.', 200, 'M', 'Mixed'),
+(@admin, 3, 'Denim Jacket', 59.0, true, 'Classic washed denim jacket.', 'Button closure, two chest pockets.', 45, 'M', 'Blue'),
+(@admin, 3, 'Cotton Polo Shirt', 24.99, true, 'Breathable piqué polo shirt.', 'Ribbed collar, three-button placket.', 110, 'L', 'Navy');
 
-SELECT u.user_id, u.first_name, u.last_name, u.email,u.password, u.role, a.is_active 
-FROM sys_user u 
-JOIN sys_admin a ON u.user_id = a.admin_id 
-WHERE u.role = 'ROLE_ADMIN';
+-- ---------------------- GROCERIES (category 2) ----------------------
+INSERT INTO product (admin_id, category_id, product_name, price, is_available, pro_description, details, quantity_in_stock, size, color) VALUES
+(@admin, 2, 'Organic Bananas 1kg', 2.49, true, 'Fresh organic bananas.', 'Origin: local farms. Store at room temperature.', 300, '1 kg', NULL),
+(@admin, 2, 'Extra Virgin Olive Oil 1L', 12.99, true, 'Cold-pressed olive oil.', 'Acidity below 0.8%. Keep away from sunlight.', 120, '1 L', NULL),
+(@admin, 2, 'Basmati Rice 5kg', 14.5, true, 'Premium long-grain basmati rice.', 'Aged 2 years, non-sticky.', 90, '5 kg', NULL),
+(@admin, 2, 'Whole Wheat Bread', 1.99, true, 'Freshly baked whole wheat loaf.', 'No preservatives. Best within 3 days.', 75, '500 g', NULL),
+(@admin, 2, 'Fresh Whole Milk 1L', 1.59, true, 'Pasteurized whole milk.', 'Keep refrigerated at 2-6 C.', 180, '1 L', NULL),
+(@admin, 2, 'Free-Range Eggs (12)', 3.99, true, 'Dozen free-range eggs.', 'Grade A, size M.', 140, '12 pcs', NULL),
+(@admin, 2, 'Roasted Arabica Coffee 250g', 8.75, true, 'Medium roast ground coffee.', 'Notes of chocolate and caramel.', 100, '250 g', NULL),
+(@admin, 2, 'Mixed Nuts 500g', 9.6, true, 'Almonds, cashews and walnuts.', 'Unsalted, vacuum sealed.', 85, '500 g', NULL),
+(@admin, 2, 'Greek Yogurt 500g', 3.25, true, 'Thick and creamy plain yogurt.', 'High protein, no added sugar. Keep refrigerated.', 130, '500 g', NULL),
+(@admin, 2, 'Spaghetti Pasta 500g', 1.49, true, 'Durum wheat spaghetti.', 'Cooks in 9 minutes.', 220, '500 g', NULL);
 
-SELECT user_id, first_name, last_name, email, role, register_date , password
-FROM sys_user 
-ORDER BY user_id;
+-- ---------------------- ELECTRONICS (category 1) ----------------------
+INSERT INTO product (admin_id, category_id, product_name, price, is_available, pro_description, details, quantity_in_stock, size, color) VALUES
+(@admin, 1, 'Wireless Bluetooth Headphones', 59.99, true, 'Over-ear headphones with noise isolation.', 'Bluetooth 5.3, 30h battery, USB-C charging.', 70, NULL, 'Black'),
+(@admin, 1, 'Smartphone 128GB', 399.0, true, '6.5" AMOLED display smartphone.', '8GB RAM, 128GB storage, 50MP camera.', 35, NULL, 'Blue'),
+(@admin, 1, 'Laptop 15.6" Core i5', 749.99, true, 'Everyday productivity laptop.', '16GB RAM, 512GB SSD, Full HD display.', 20, NULL, 'Silver'),
+(@admin, 1, 'Smart Watch Series X', 89.9, true, 'Fitness tracking smart watch.', 'Heart-rate monitor, GPS, water resistant.', 55, NULL, 'Black'),
+(@admin, 1, 'Portable Power Bank 20000mAh', 24.99, true, 'Fast-charging power bank.', 'Dual USB + USB-C, 22.5W output.', 160, NULL, 'White'),
+(@admin, 1, '27" 4K Monitor', 279.0, true, 'IPS 4K UHD monitor.', '60Hz, HDMI + DisplayPort, adjustable stand.', 30, NULL, 'Black'),
+(@admin, 1, 'Mechanical Keyboard RGB', 54.5, true, 'Hot-swappable mechanical keyboard.', 'Blue switches, RGB backlight, USB-C.', 60, NULL, 'Black'),
+(@admin, 1, 'Wireless Mouse', 14.99, true, 'Ergonomic 2.4GHz wireless mouse.', 'Adjustable DPI, silent clicks.', 210, NULL, 'Grey'),
+(@admin, 1, 'Bluetooth Speaker', 34.99, true, 'Portable waterproof speaker.', '12h battery, IPX7, built-in mic.', 95, NULL, 'Black'),
+(@admin, 1, 'Full HD Webcam', 39.9, true, '1080p webcam with microphone.', 'Auto light correction, USB plug and play.', 75, NULL, 'Black');
 
-UPDATE sys_user 
-SET password = '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.' 
-WHERE email = 'admin@ecodb.com';
+-- =====================================================
+-- IMAGES: one main image per product, matched by product name
+-- =====================================================
+DROP TEMPORARY TABLE IF EXISTS seed_images;
+CREATE TEMPORARY TABLE seed_images (product_name VARCHAR(100) NOT NULL, file_name VARCHAR(255) NOT NULL);
+INSERT INTO seed_images (product_name, file_name) VALUES
+('Classic White T-Shirt', 'classic-white-t-shirt.jpg'),
+('Slim Fit Blue Jeans', 'slim-fit-blue-jeans.jpg'),
+('Black Hoodie', 'black-hoodie.jpg'),
+('Summer Floral Dress', 'summer-floral-dress.jpg'),
+('Leather Jacket', 'leather-jacket.jpg'),
+('Running Sneakers', 'running-sneakers.jpg'),
+('Wool Winter Scarf', 'wool-winter-scarf.jpg'),
+('Cotton Boxer Pack (3)', 'cotton-boxer-pack-3.jpg'),
+('Denim Jacket', 'denim-jacket.jpg'),
+('Cotton Polo Shirt', 'cotton-polo-shirt.jpg'),
+('Organic Bananas 1kg', 'organic-bananas-1kg.jpg'),
+('Extra Virgin Olive Oil 1L', 'extra-virgin-olive-oil-1l.jpg'),
+('Basmati Rice 5kg', 'basmati-rice-5kg.jpg'),
+('Whole Wheat Bread', 'whole-wheat-bread.jpg'),
+('Fresh Whole Milk 1L', 'fresh-whole-milk-1l.jpg'),
+('Free-Range Eggs (12)', 'free-range-eggs-12.jpg'),
+('Roasted Arabica Coffee 250g', 'roasted-arabica-coffee-250g.jpg'),
+('Mixed Nuts 500g', 'mixed-nuts-500g.jpg'),
+('Greek Yogurt 500g', 'greek-yogurt-500g.jpg'),
+('Spaghetti Pasta 500g', 'spaghetti-pasta-500g.jpg'),
+('Wireless Bluetooth Headphones', 'wireless-bluetooth-headphones.jpg'),
+('Smartphone 128GB', 'smartphone-128gb.jpg'),
+('Laptop 15.6" Core i5', 'laptop-15-6-core-i5.jpg'),
+('Smart Watch Series X', 'smart-watch-series-x.jpg'),
+('Portable Power Bank 20000mAh', 'portable-power-bank-20000mah.jpg'),
+('27" 4K Monitor', '27-4k-monitor.jpg'),
+('Mechanical Keyboard RGB', 'mechanical-keyboard-rgb.jpg'),
+('Wireless Mouse', 'wireless-mouse.jpg'),
+('Bluetooth Speaker', 'bluetooth-speaker.jpg'),
+('Full HD Webcam', 'full-hd-webcam.jpg');
+
+INSERT INTO product_image (product_id, image_url, is_main)
+SELECT p.product_id, CONCAT(@prefix, s.file_name), true
+FROM seed_images s
+JOIN product p ON p.product_name = s.product_name
+WHERE NOT EXISTS (SELECT 1 FROM product_image i WHERE i.product_id = p.product_id);
+
+-- Check
+SELECT c.category_name, COUNT(DISTINCT p.product_id) AS products, COUNT(i.image_id) AS images
+FROM category c
+LEFT JOIN product p ON p.category_id = c.category_id
+LEFT JOIN product_image i ON i.product_id = p.product_id
+GROUP BY c.category_name;
